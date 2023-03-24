@@ -64,6 +64,7 @@ public class CovidStatisticsServiceImpl implements CovidStatisticsService {
             throw new IllegalArgumentException();
         }
         if (isValidISOCountry(countryCode)) {
+            ModelMapper modelMapper = new ModelMapper();
             Optional<CovidStatistics> covidStatisticsOptional = covidStatisticsRepository.findFirstByCountryCodeOrderByTimeCreatedDesc(countryCode);
             if (covidStatisticsOptional.isPresent()){
                 CovidStatistics covidStatistics = covidStatisticsOptional.get();
@@ -73,14 +74,27 @@ public class CovidStatisticsServiceImpl implements CovidStatisticsService {
                 if (covidStatistics.getTimeCreated().isBefore(createdMinusTen)){
                     loadCurrentCovidStatistics();
                 }
-                ModelMapper modelMapper = new ModelMapper();
-                TypeMap<CovidStatistics, CovidStatisticsDTO> propertyMapper = modelMapper.createTypeMap(CovidStatistics.class, CovidStatisticsDTO.class);
-                propertyMapper.addMapping(CovidStatistics::getUUID, CovidStatisticsDTO::setID);
-                return modelMapper.map(covidStatistics,CovidStatisticsDTO.class);
+
+                return mapCovidStatistics(modelMapper, covidStatistics);
+            }
+            else{
+                loadCurrentCovidStatistics();
+                Optional<CovidStatistics> statisticsOptional = covidStatisticsRepository.findFirstByCountryCodeOrderByTimeCreatedDesc(countryCode);
+                if (statisticsOptional.isPresent()){
+                    CovidStatistics covidStatistics = statisticsOptional.get();
+                    return mapCovidStatistics(modelMapper, covidStatistics);
+                }
+
             }
         }
 
         return null;
+    }
+
+    private static CovidStatisticsDTO mapCovidStatistics(ModelMapper modelMapper, CovidStatistics covidStatistics) {
+        TypeMap<CovidStatistics, CovidStatisticsDTO> propertyMapper = modelMapper.createTypeMap(CovidStatistics.class, CovidStatisticsDTO.class);
+        propertyMapper.addMapping(CovidStatistics::getUUID, CovidStatisticsDTO::setID);
+        return modelMapper.map(covidStatistics, CovidStatisticsDTO.class);
     }
 
     /**
